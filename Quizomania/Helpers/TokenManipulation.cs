@@ -1,0 +1,108 @@
+﻿using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using Quizomania.Models;
+using System;
+using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Quizomania.Helpers
+{
+    /// <summary>
+    /// Token  manipulation class
+    /// Contains all nessesary methods for ganerating tokens and retriving data from them
+    /// </summary>
+    public class TokenManipulation : ITokenManipulation
+    {
+        private readonly JWTSettings _jwtsettings;
+
+        public TokenManipulation(IOptions<JWTSettings> jwtsettings)
+        {
+            _jwtsettings = jwtsettings.Value;
+        }
+
+        /// <summary>
+        /// Generates access token for the user
+        /// </summary>
+        /// <param name="userId">int user id</param>
+        /// <returns>string access token</returns>
+        public string GenerateAccessToken(int userId)
+        {
+            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+            byte[] key = Encoding.ASCII.GetBytes(_jwtsettings.SecretKey);
+            SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new Claim[]
+                {
+                    new Claim(ClaimTypes.Name, Convert.ToString(userId))
+                }),
+                Expires = DateTime.UtcNow.AddHours(6),
+                SigningCredentials = new SigningCredentials(
+                    new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+            SecurityToken token = tokenHandler.CreateToken(tokenDescriptor);
+
+            return tokenHandler.WriteToken(token);
+        }
+
+        /// <summary>
+        /// Generates refresh token for user
+        /// </summary>
+        /// <returns>Refres token model</returns>
+        public RefreshToken GenerateRefreshToken(int userId)
+        {
+            RefreshToken refreshToken = new RefreshToken();
+
+            byte[] randomNumber = new byte[32];
+            using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(randomNumber);
+                refreshToken.Token = Convert.ToBase64String(randomNumber);
+            }
+
+            refreshToken.ExpiryDate = DateTime.UtcNow.AddMonths(6);
+            refreshToken.UserId = userId;
+
+            return refreshToken;
+        }
+
+        /// <summary>
+        /// Retreives user id from access token
+        /// </summary>
+        /// <param name="accessToken">string access token</param>
+        /// <returns>int user id</returns>
+        public int GetUserIdFromAccessToken(string accessToken)
+        {
+            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+            byte[] key = Encoding.ASCII.GetBytes(_jwtsettings.SecretKey);
+
+            TokenValidationParameters tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ClockSkew = TimeSpan.Zero
+            };
+
+            ClaimsPrincipal principle = tokenHandler.ValidateToken(
+                accessToken, tokenValidationParameters, out SecurityToken securityToken);
+
+            JwtSecurityToken jwtSecurityToken = securityToken as JwtSecurityToken;
+
+            if (jwtSecurityToken != null && jwtSecurityToken.Header.Alg.Equals(
+                SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            {
+                string userId = principle.FindFirst(ClaimTypes.Name)?.Value;
+
+                return Convert.ToInt32(userId);
+            }
+
+            throw new ApplicationException("Token is invalid");
+        }
+    }
+}
