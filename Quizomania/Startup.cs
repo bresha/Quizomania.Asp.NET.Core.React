@@ -38,7 +38,6 @@ namespace Quizomania
             services.Configure<JWTSettings>(jwtSection);
 
             services.AddScoped<IUsersDataAccess, UsersDataAccess>();
-            services.AddScoped<IRefreshTokensDataAccess, RefreshTokensDataAccess>();
 
             services.AddScoped<ITokenManipulation, TokenManipulation>();
         }

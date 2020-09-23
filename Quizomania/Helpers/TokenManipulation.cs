@@ -49,27 +49,8 @@ namespace Quizomania.Helpers
             return tokenHandler.WriteToken(token);
         }
 
-        /// <summary>
-        /// Generates refresh token for user
-        /// </summary>
-        /// <returns>Refres token model</returns>
-        public RefreshToken GenerateRefreshToken(int userId)
-        {
-            RefreshToken refreshToken = new RefreshToken();
 
-            byte[] randomNumber = new byte[32];
-            using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(randomNumber);
-                refreshToken.Token = Convert.ToBase64String(randomNumber);
-            }
-
-            refreshToken.ExpiryDate = DateTime.UtcNow.AddMonths(6);
-            refreshToken.UserId = userId;
-
-            return refreshToken;
-        }
-
+        // TODO -- do I need this
         /// <summary>
         /// Retreives user id from access token
         /// </summary>
@@ -102,6 +83,7 @@ namespace Quizomania.Helpers
                 return Convert.ToInt32(userId);
             }
 
+            // TODO -- Think about this solution
             throw new ApplicationException("Token is invalid");
         }
     }

@@ -20,12 +20,6 @@ namespace Quizomania.Helpers
         string GenerateAccessToken(int userId);
 
         /// <summary>
-        /// Implementation of this method should return refresh token model
-        /// </summary>
-        /// <returns></returns>
-        RefreshToken GenerateRefreshToken(int userId);
-
-        /// <summary>
         /// Implementation of this method should return User Id 
         /// </summary>
         /// <param name="accessToken">String Access token</param>

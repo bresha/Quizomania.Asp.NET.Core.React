@@ -50,11 +50,6 @@ namespace Quizomania.Models
         public string AccessToken { get; set; }
 
         /// <summary>
-        /// Token for refreshing access token
-        /// </summary>
-        public RefreshToken RefreshToken { get; set; }
-
-        /// <summary>
         /// Id of tournament that user is registered in
         /// </summary>
         public int RegisteredInTournament { get; set; }

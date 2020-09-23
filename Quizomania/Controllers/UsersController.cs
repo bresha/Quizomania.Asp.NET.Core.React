@@ -22,16 +22,13 @@ namespace Quizomania.Controllers
     {
         private readonly IUsersDataAccess _usersDataAccess;
         private readonly ITokenManipulation _tokenManipulation;
-        private readonly IRefreshTokensDataAccess _refreshTokensDataAccess;
 
         public UsersController(
             IUsersDataAccess usersDataAccess, 
-            ITokenManipulation tokenManipulation,
-            IRefreshTokensDataAccess refreshTokensDataAccess)
+            ITokenManipulation tokenManipulation)
         {
             _usersDataAccess = usersDataAccess;
             _tokenManipulation = tokenManipulation;
-            _refreshTokensDataAccess = refreshTokensDataAccess;
         }
 
         /// <summary>
@@ -62,6 +59,7 @@ namespace Quizomania.Controllers
                     ModelState.AddModelError("Username", "Username is taken");
                 }
 
+                //If there are errors send them to client app
                 if (ModelState.IsValid == false)
                 {
                     return Conflict(ModelState);
@@ -73,12 +71,6 @@ namespace Quizomania.Controllers
                 //Insert user to db
                 await _usersDataAccess.CreateUserAsync(user);
 
-                //Add Refresh token to user
-                user.RefreshToken = _tokenManipulation.GenerateRefreshToken(user.Id);
-
-                //Insert refresh token into db
-                await _refreshTokensDataAccess.InsertRefreshTokenAsync(user.RefreshToken);
-
                 //Add access token to user
                 user.AccessToken = _tokenManipulation.GenerateAccessToken(user.Id);
 
@@ -87,15 +79,14 @@ namespace Quizomania.Controllers
                 {
                     user.Id,
                     user.Username,
-                    user.AccessToken,
-                    user.RefreshToken
+                    user.AccessToken
                 });
 
             }
             catch (Exception)
             {
                 // TODO -- inject logger and log this error message to file or db
-                return BadRequest(new { errors = "Server Error" });
+                return StatusCode(500);
             }
         }
     }
