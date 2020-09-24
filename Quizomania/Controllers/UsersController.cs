@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Quizomania.Helpers;
+using System.ComponentModel;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace Quizomania.Controllers
 {
@@ -87,6 +89,49 @@ namespace Quizomania.Controllers
             {
                 // TODO -- inject logger and log this error message to file or db
                 return StatusCode(500);
+            }
+        }
+
+
+        [AllowAnonymous]
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginData loginData)
+        {
+            try
+            {
+                //Get user from database by email
+                User user = await _usersDataAccess.GetUserByEmailAsync(loginData.Email);
+
+                //If no user return 401 "Invalid credentials"
+                if (user == null)
+                {
+                    return Unauthorized(new { errors = "Invalid credentials" });
+                }
+
+                //Check if the passwords match
+                bool verified = BC.Verify(loginData.Password, user.Password);
+
+                //If paswords doesnt match return 401 "Invalid credentials"
+                if (verified == false)
+                {
+                    return Unauthorized(new { errors = "Invalid credentials" });
+                }
+
+                //Add access token to user
+                user.AccessToken = _tokenManipulation.GenerateAccessToken(user.Id);
+
+                //If everything matches return user without email and password
+                return Ok(new
+                {
+                    user.Id,
+                    user.Username,
+                    user.AccessToken
+                });
+            }
+            catch (Exception)
+            {
+
+                throw;
             }
         }
     }
