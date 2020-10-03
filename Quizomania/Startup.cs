@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
 using Quizomania.DataAccess;
 using Quizomania.Helpers;
 
@@ -23,7 +24,10 @@ namespace Quizomania
         public void ConfigureServices(IServiceCollection services)
         {
 
-            services.AddControllersWithViews();
+            services.AddControllersWithViews().AddNewtonsoftJson(options =>
+            {
+                options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+            });
 
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration =>
@@ -34,12 +38,17 @@ namespace Quizomania
             var connectionString = new ConnectionString(Configuration.GetConnectionString("QuizomaniaDB"));
             services.AddSingleton(connectionString);
 
-            var jwtSection = Configuration.GetSection("JWTSettings");
-            services.Configure<JWTSettings>(jwtSection);
+            services.Configure<JWTSettings>(Configuration.GetSection("JWTSettings"));
+
+            services.Configure<MailSettings>(Configuration.GetSection("MailSettings"));
 
             services.AddScoped<IUsersDataAccess, UsersDataAccess>();
 
             services.AddScoped<ITokenManipulation, TokenManipulation>();
+
+            services.AddScoped<IMailService, MailService>();
+
+            services.AddScoped<IVerificationTokenDataAccess, VerificationTokenDataAccess>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -35,5 +35,12 @@ namespace Quizomania.DataAccess
         /// </summary>
         /// <param name="user">User model</param>
         Task CreateUserAsync(User user);
+
+        /// <summary>
+        /// Updates users entry in database for IsVerified 
+        /// </summary>
+        /// <param name="user">User model</param>
+        /// <returns>Void</returns>
+        Task UpdateUserWhenVerifiedAsync(User user);
     }
 }

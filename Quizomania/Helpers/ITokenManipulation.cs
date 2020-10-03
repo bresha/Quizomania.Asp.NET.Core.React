@@ -25,5 +25,12 @@ namespace Quizomania.Helpers
         /// <param name="accessToken">String Access token</param>
         /// <returns>int User id</returns>
         int GetUserIdFromAccessToken(string accessToken);
+
+        /// <summary>
+        /// Generates verification token for email verification
+        /// </summary>
+        /// <param name="userId">Id of a user</param>
+        /// <returns>Verification token model</returns>
+        VerificationToken GenerateVerificationToken(int userId);
     }
 }

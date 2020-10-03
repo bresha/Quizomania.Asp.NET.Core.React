@@ -45,6 +45,11 @@ namespace Quizomania.Models
         public string Password { get; set; }
 
         /// <summary>
+        /// Is user verified
+        /// </summary>
+        public bool IsVerified { get; set; }
+
+        /// <summary>
         /// Access token for user when it is registered
         /// </summary>
         public string AccessToken { get; set; }

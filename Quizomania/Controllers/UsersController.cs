@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using Quizomania.Helpers;
 using System.ComponentModel;
 using System.Runtime.InteropServices.WindowsRuntime;
+using Quizomania.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace Quizomania.Controllers
 {
@@ -17,36 +19,44 @@ namespace Quizomania.Controllers
     /// Main users controler class
     /// Contains all api endpoints for users
     /// </summary>
-    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class UsersController : ControllerBase
     {
         private readonly IUsersDataAccess _usersDataAccess;
         private readonly ITokenManipulation _tokenManipulation;
+        private readonly IMailService _mailService;
+        private readonly IVerificationTokenDataAccess _verificationTokenDataAccess;
+        private readonly ILogger _logger;
 
         public UsersController(
             IUsersDataAccess usersDataAccess, 
-            ITokenManipulation tokenManipulation)
+            ITokenManipulation tokenManipulation,
+            IMailService mailService,
+            IVerificationTokenDataAccess verificationTokenDataAccess,
+            ILogger<UsersController> logger)
         {
             _usersDataAccess = usersDataAccess;
             _tokenManipulation = tokenManipulation;
+            _mailService = mailService;
+            _verificationTokenDataAccess = verificationTokenDataAccess;
+            _logger = logger;
         }
 
+      
         /// <summary>
-        /// Register user api
+        /// Registration of a new member
         /// </summary>
-        /// <param name="user">User model from body of request</param>
-        /// <returns>User object with Id, Access token and Refresh token</returns>
-        [AllowAnonymous]
+        /// <param name="registerUserData">RegisterUserData from client application</param>
+        /// <returns>IActionResult</returns>
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterUserData registerUserData)
-        {
-            //Encrypt user password
-            registerUserData.Password = BC.HashPassword(registerUserData.Password);
-                        
+        {       
             try
             {
+                //Encrypt user password
+                registerUserData.Password = BC.HashPassword(registerUserData.Password);
+
                 //Check is email in use
                 User user = await _usersDataAccess.GetUserByEmailAsync(registerUserData.Email);
                 if (user != null)
@@ -70,30 +80,84 @@ namespace Quizomania.Controllers
                 //Create a user from register user data
                 user = new User(registerUserData);
 
+                //Set user as unverified
+                user.IsVerified = false;
+
                 //Insert user to db
                 await _usersDataAccess.CreateUserAsync(user);
 
-                //Add access token to user
-                user.AccessToken = _tokenManipulation.GenerateAccessToken(user.Id);
+                //Create verification token
+                VerificationToken token = _tokenManipulation.GenerateVerificationToken(user.Id);
 
-                //Return user
-                return Ok(new
-                {
-                    user.Id,
-                    user.Username,
-                    user.AccessToken
-                });
+                //Set token purpose
+                token.TokenPurpose = TokenPurposeEnum.EmailVerification;
+
+                //Insert verification token in database
+                await _verificationTokenDataAccess.InsertVerificationTokenAsync(token);
+
+                //Send email with verification token
+                await _mailService.SendVerificationTokenAsync(token.Token, user);
+
+                return Ok(new { message = $"Thank you for registering! Verification token has been sent to {user.Email}" });
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // TODO -- inject logger and log this error message to file or db
+                _logger.LogError(ex, "Server Error");
+
                 return StatusCode(500);
             }
         }
 
 
-        [AllowAnonymous]
+        [HttpPost("verify-email")]
+        public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailData verifyEmailData)
+        {
+            try
+            {
+                // Get user from email
+                User user = await _usersDataAccess.GetUserByEmailAsync(verifyEmailData.Email);
+
+                // Get verification token model from token that comes from the body and user id
+                VerificationToken token = await _verificationTokenDataAccess
+                    .GetVerificationTokenAsync(user.Id, verifyEmailData.VerificationToken, TokenPurposeEnum.EmailVerification);
+                
+                // If there is a token update user model and database for IsVerified
+                if (token != null)
+                {
+                    user.IsVerified = true;
+
+                    await _usersDataAccess.UpdateUserWhenVerifiedAsync(user);
+
+                    //Add access token to user
+                    user.AccessToken = _tokenManipulation.GenerateAccessToken(user.Id);
+
+                    //Return user data
+                    return Ok(new
+                    {
+                        user.Id,
+                        user.Username,
+                        user.AccessToken
+                    });
+                }
+                else
+                {
+                    //Return bad request 
+                    return BadRequest(new
+                    {
+                        errors = "Invalid verification token"
+                    });
+                }
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Server Error");
+
+                return StatusCode(500);
+            }
+        }
+        
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginData loginData)
         {
@@ -117,21 +181,35 @@ namespace Quizomania.Controllers
                     return Unauthorized(new { errors = "Invalid credentials" });
                 }
 
-                //Add access token to user
-                user.AccessToken = _tokenManipulation.GenerateAccessToken(user.Id);
-
-                //If everything matches return user without email and password
-                return Ok(new
+                //If user is verified return user info
+                if (user.IsVerified)
                 {
-                    user.Id,
-                    user.Username,
-                    user.AccessToken
-                });
-            }
-            catch (Exception)
-            {
+                    //Add access token to user
+                    user.AccessToken = _tokenManipulation.GenerateAccessToken(user.Id);
 
-                throw;
+                    //If everything matches return user without email and password
+                    return Ok(new
+                    {
+                        user.Id,
+                        user.Username,
+                        user.AccessToken
+                    });
+                }
+                else
+                {
+                    return Conflict(new
+                    {
+                        errors = "User email is not verified"
+                    });
+                }
+
+                
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Server Error");
+
+                return StatusCode(500);
             }
         }
     }

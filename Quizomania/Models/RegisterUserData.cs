@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Quizomania.Models
 {
     /// <summary>
-    /// Registe user data model
+    /// Register user data model
     /// Contains data that will come from the register form
     /// </summary>
     public class RegisterUserData

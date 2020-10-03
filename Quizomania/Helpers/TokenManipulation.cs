@@ -49,6 +49,22 @@ namespace Quizomania.Helpers
             return tokenHandler.WriteToken(token);
         }
 
+        /// <summary>
+        /// Generates verification token for email verification
+        /// </summary>
+        /// <param name="userId">Id of a user</param>
+        /// <returns>Verification token model</returns>
+        public VerificationToken GenerateVerificationToken(int userId)
+        {
+            VerificationToken token = new VerificationToken();
+            Random random = new Random();
+            token.Token = random.Next(0, 100000).ToString("D5");
+            token.CreatedAt = DateTime.UtcNow;
+            token.UserId = userId;
+
+            return token;
+        }
+
 
         // TODO -- do I need this
         /// <summary>

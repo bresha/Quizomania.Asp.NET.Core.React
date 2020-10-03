@@ -73,6 +73,7 @@ namespace Quizomania.DataAccess
                 p.Add("@UserName", user.Username);
                 p.Add("@Email", user.Email);
                 p.Add("@Password", user.Password);
+                p.Add("@IsVerified", user.IsVerified);
                 p.Add("@Id", 0, dbType: DbType.Int32, direction: ParameterDirection.Output);
 
                 await connection
@@ -82,6 +83,17 @@ namespace Quizomania.DataAccess
             }
         }
 
-        
+        public async Task UpdateUserWhenVerifiedAsync(User user)
+        {
+            using (var connection = new SqlConnection(_connectionString.Value))
+            {
+                var p = new DynamicParameters();
+                p.Add("@Id", user.Id);
+                p.Add("@IsVerified", user.IsVerified);
+
+                await connection
+                    .ExecuteAsync("dbo.spUsers_UpdateUserWhenVerified", p, commandType: CommandType.StoredProcedure);
+            }
+        }
     }
 }
