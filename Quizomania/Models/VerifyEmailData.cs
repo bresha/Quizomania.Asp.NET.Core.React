@@ -25,7 +25,6 @@ namespace Quizomania.Models
         /// Verification token that has been sent to users email
         /// </summary>
         [Required]
-        [MaxLength(50)]
         public string VerificationToken { get; set; }
     }
 }

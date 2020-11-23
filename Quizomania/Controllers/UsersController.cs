@@ -1,5 +1,4 @@
 ﻿using BC = BCrypt.Net.BCrypt;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Quizomania.DataAccess;
 using Quizomania.Models;
@@ -45,7 +44,7 @@ namespace Quizomania.Controllers
 
       
         /// <summary>
-        /// Registration of a new member
+        /// Registration of a new member.
         /// </summary>
         /// <param name="registerUserData">RegisterUserData from client application</param>
         /// <returns>IActionResult</returns>
@@ -109,7 +108,11 @@ namespace Quizomania.Controllers
             }
         }
 
-
+        /// <summary>
+        /// Email verification after registration.
+        /// </summary>
+        /// <param name="verifyEmailData">Receives email and the verification token.</param>
+        /// <returns>IActionResult</returns>
         [HttpPost("verify-email")]
         public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailData verifyEmailData)
         {
@@ -158,6 +161,11 @@ namespace Quizomania.Controllers
             }
         }
         
+        /// <summary>
+        /// Users login to receive access token
+        /// </summary>
+        /// <param name="loginData">Email and password</param>
+        /// <returns>IActionResult</returns>
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginData loginData)
         {
@@ -204,6 +212,46 @@ namespace Quizomania.Controllers
                 }
 
                 
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Server Error");
+
+                return StatusCode(500);
+            }
+        }
+
+        /// <summary>
+        /// Resend token for email verification
+        /// </summary>
+        /// <param name="resendVerificationTokenData"></param>
+        /// <returns></returns>
+        [HttpPost("resend-verification-email")]
+        public async Task<IActionResult> ResendVerificationToken([FromBody] ResendVerificationTokenData resendVerificationTokenData)
+        {
+            try
+            {
+                User user = await _usersDataAccess.GetUserByEmailAsync(resendVerificationTokenData.Email);
+
+                if (user == null)
+                {
+                    return NotFound(new
+                    {
+                        errors = "No such user."
+                    });
+                }
+
+                VerificationToken token =_tokenManipulation.GenerateVerificationToken(user.Id);
+                token.TokenPurpose = TokenPurposeEnum.EmailVerification;
+
+                await _verificationTokenDataAccess.InsertVerificationTokenAsync(token);
+
+                await _mailService.SendVerificationTokenAsync(token.Token, user);
+
+                return Ok(new
+                {
+                    message = $"New verification token has been sent to {user.Email}"
+                });
             }
             catch (Exception ex)
             {
