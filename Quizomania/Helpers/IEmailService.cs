@@ -10,7 +10,7 @@ namespace Quizomania.Helpers
     /// Mail service
     /// Contains methods to send email
     /// </summary>
-    public interface IMailService
+    public interface IEmailService
     {
         /// <summary>
         /// Sends verification token via email to user
@@ -18,6 +18,6 @@ namespace Quizomania.Helpers
         /// <param name="token">string verification token</param>
         /// <param name="user">User object</param>
         /// <returns>Task</returns>
-        Task SendVerificationTokenAsync(string token, User user);
+        Task SendEmailAsync(string to, string subject, string message);
     }
 }

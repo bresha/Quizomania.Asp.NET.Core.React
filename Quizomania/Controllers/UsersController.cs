@@ -24,22 +24,20 @@ namespace Quizomania.Controllers
     {
         private readonly IUsersDataAccess _usersDataAccess;
         private readonly ITokenManipulation _tokenManipulation;
-        private readonly IMailService _mailService;
+        private readonly IEmailService _mailService;
         private readonly IVerificationTokenDataAccess _verificationTokenDataAccess;
         private readonly ILogger _logger;
 
         public UsersController(
             IUsersDataAccess usersDataAccess, 
             ITokenManipulation tokenManipulation,
-            IMailService mailService,
-            IVerificationTokenDataAccess verificationTokenDataAccess,
-            ILogger<UsersController> logger)
+            IEmailService mailService,
+            IVerificationTokenDataAccess verificationTokenDataAccess)
         {
             _usersDataAccess = usersDataAccess;
             _tokenManipulation = tokenManipulation;
             _mailService = mailService;
             _verificationTokenDataAccess = verificationTokenDataAccess;
-            _logger = logger;
         }
 
       
@@ -53,9 +51,6 @@ namespace Quizomania.Controllers
         {       
             try
             {
-                //Encrypt user password
-                registerUserData.Password = BC.HashPassword(registerUserData.Password);
-
                 //Check is email in use
                 User user = await _usersDataAccess.GetUserByEmailAsync(registerUserData.Email);
                 if (user != null)
@@ -75,7 +70,10 @@ namespace Quizomania.Controllers
                 {
                     return Conflict(ModelState);
                 }
-                
+
+                //Encrypt user password
+                registerUserData.Password = BC.HashPassword(registerUserData.Password);
+
                 //Create a user from register user data
                 user = new User(registerUserData);
 

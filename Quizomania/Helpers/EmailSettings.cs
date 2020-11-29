@@ -9,7 +9,7 @@ namespace Quizomania.Helpers
     /// Mail settings class
     /// It is a hellper class to recive mail settings
     /// </summary>
-    public class MailSettings
+    public class EmailSettings
     {
         /// <summary>
         /// Email from which emails is going to be sent

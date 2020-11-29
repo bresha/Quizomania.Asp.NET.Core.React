@@ -40,13 +40,13 @@ namespace Quizomania
 
             services.Configure<JWTSettings>(Configuration.GetSection("JWTSettings"));
 
-            services.Configure<MailSettings>(Configuration.GetSection("MailSettings"));
+            services.Configure<EmailSettings>(Configuration.GetSection("MailSettings"));
 
             services.AddScoped<IUsersDataAccess, UsersDataAccess>();
 
             services.AddScoped<ITokenManipulation, TokenManipulation>();
 
-            services.AddScoped<IMailService, MailService>();
+            services.AddScoped<IEmailService, EmailService>();
 
             services.AddScoped<IVerificationTokenDataAccess, VerificationTokenDataAccess>();
         }
